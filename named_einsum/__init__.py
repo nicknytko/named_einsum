@@ -15,9 +15,8 @@ def _generate_variable_subscripts(variable, mapping):
     return out_str
 
 
-@functools.cache
-def compile(s):
-    parsed = parse(s)
+def compile(parsed):
+    '''Compile a parsed string into an executable einsum statement'''
 
     input_var_strs = []
     for input_variable in parsed.input_variables:
@@ -31,8 +30,37 @@ def compile(s):
     return ','.join(input_var_strs) + '->' + output_var_str
 
 
+def shape_check(parsed, variables):
+    # todo...
+    pass
+
+
+def translate(subscripts):
+    '''Translate a readable einsum string into something that can be executed by (i.e.) numpy'''
+
+    return compile(parse(subscripts))
+
+
 def einsum(fn, subscripts, *args, **kwargs):
-    compiled_subscripts = compile(subscripts)
+    '''
+    Wrapper for existing einsum functions
+
+    parameters
+    ----------
+    fn : callable[[subscripts, arguments...], [output]]
+      Existing einsum function to wrap
+    subscripts : string
+      Readable einsum subscripts string
+
+    returns
+    -------
+    array
+      Output of einsum
+    '''
+
+    parsed_subscripts = parse(subscripts)
+    shape_check(parsed_subscripts, args)
+    compiled_subscripts = compile(parsed_subscripts)
     return fn(compiled_subscripts, *args, **kwargs)
 
 

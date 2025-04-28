@@ -3,17 +3,17 @@ import pytest
 
 
 def test_named_input():
-    assert(named_einsum.compile('input_1[a], input_2[b] -> output[a,b]') == 'A,B->AB')
+    assert(named_einsum.translate('input_1[a], input_2[b] -> output[a,b]') == 'A,B->AB')
 
 
 def test_scalar_out():
-    assert(named_einsum.compile('[a] ->') == 'A->')
-    assert(named_einsum.compile('[a] -> output') == 'A->')
+    assert(named_einsum.translate('[a] ->') == 'A->')
+    assert(named_einsum.translate('[a] -> output') == 'A->')
 
 
 def test_complex():
     # Evaluation of tensor-product mass-matrix
-    assert(named_einsum.compile('''
+    assert(named_einsum.translate('''
     phi_ix[basis_ix, quad_x],
     phi_iy[basis_iy, quad_y],
     phi_jx[basis_jx, quad_x],
@@ -27,4 +27,4 @@ def test_complex():
 
 
 def test_ellipsis():
-    assert(named_einsum.compile('[...,a,b], [a,b] -> [...]') == '...AB,AB->...')
+    assert(named_einsum.translate('[...,a,b], [a,b] -> [...]') == '...AB,AB->...')

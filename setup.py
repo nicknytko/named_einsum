@@ -4,6 +4,7 @@ from setuptools_scm.version import get_local_dirty_tag
 import subprocess
 from pathlib import Path
 from os.path import join
+import sys
 
 
 def check_artifact_out_of_date(artifact, origin):
@@ -23,9 +24,15 @@ class BuildParser(build):
         grammar_path = join('named_einsum', 'grammar.g')
 
         if check_artifact_out_of_date(parser_path, grammar_path):
+            print('Parser out of date, rebuilding...')
             with open(parser_path, 'w') as f:
                 print('Building parser...')
-                subprocess.run(['python3', '-m', 'lark.tools.standalone', grammar_path], stdout=f)
+                code = subprocess.run([sys.executable, '-m', 'lark.tools.standalone', grammar_path], stdout=f).returncode
+                if code != 0:
+                    Path(parser_path).unlink(missing_ok=True)
+                    raise RuntimeError('Failed to build parser')
+        else:
+            print('Parser is up to date!')
         super().run()
 
 

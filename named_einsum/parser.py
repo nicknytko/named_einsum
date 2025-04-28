@@ -1,5 +1,7 @@
 from named_einsum.lark_parser import Lark_StandAlone
 from types import SimpleNamespace
+import named_einsum.exceptions
+from named_einsum.characters import valid_characters
 
 
 class Variable:
@@ -37,10 +39,10 @@ def _parse_variable(tree):
     return Variable(name=name, axes=axes)
 
 
-def _idx_to_letter(idx):
-    if idx > ord('z') - ord('A'):
-        raise RuntimeError(f'Index {idx} has exceeded available characters for einsum: {ord("z") - ord("A")}')
-    return chr(65 + idx)
+def _idx_to_letter(axis, idx):
+    if idx >= len(valid_characters):
+        raise named_einsum.exceptions.TooManyAxesError(axis, idx)
+    return valid_characters[idx]
 
 
 def parse(inp):
@@ -70,17 +72,19 @@ def parse(inp):
     input_axes = set()
     output_axes = set()
 
+    # Find unique input axes
     for input_variable in input_variables:
         for axis_name in input_variable.axis_names:
             if axis_name not in axis_mapping:
-                axis_mapping[axis_name] = _idx_to_letter(unique_axis_idx)
+                axis_mapping[axis_name] = _idx_to_letter(axis_name, unique_axis_idx)
                 unique_axis_idx += 1
             input_axes.add(axis_name)
 
+    # Ensure all output axes belong to some input
     if output_variable is not None:
         for axis_name in output_variable.axis_names:
             if axis_name not in input_axes:
-                raise RuntimeError(f'Output axis {axis_name} not found in any input!')
+                raise named_einsum.exceptions.AxisNotFoundError(axis_name)
             output_axes.add(axis_name)
 
     return SimpleNamespace(
