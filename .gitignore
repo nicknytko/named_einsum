@@ -172,4 +172,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Build-specific files
 named_einsum/lark_parser.py
+named_einsum/version.py

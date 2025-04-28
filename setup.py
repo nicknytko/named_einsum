@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 from setuptools.command.build import build
+from setuptools_scm.version import get_local_dirty_tag
 import subprocess
 from pathlib import Path
 from os.path import join
@@ -28,30 +29,36 @@ class BuildParser(build):
         super().run()
 
 
+def clean_scheme(version):
+    return get_local_dirty_tag(version) if version.dirty else '+clean'
+
+
 setup(
-    name="named_einsum",
-    version="0.1.0",  # You can manage version manually here
-    author="Nicolas Nytko",
-    author_email="nnytko2@illinois.edu",
-    description="Readable einsum",
-    long_description=open("README.md").read(),
-    long_description_content_type="text/markdown",
-    url="https://github.com/nicknytko/named_einsum",
-    license="MIT",
-    keywords=["einsum", "tensor contraction"],
+    name='named_einsum',
+    author='Nicolas Nytko',
+    author_email='nnytko2@illinois.edu',
+    use_scm_version={
+        'local_scheme': clean_scheme
+    },
+    description='Readable einsum',
+    long_description=open('README.md').read(),
+    long_description_content_type='text/markdown',
+    url='https://github.com/nicknytko/named_einsum',
+    license='MIT',
+    keywords=['einsum', 'tensor contraction'],
     classifiers=[
-        "License :: OSI Approved :: MIT License",
-        "Programming Language :: Python :: 3",
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 3',
     ],
     packages=find_packages(),
     install_requires=[
-        "numpy>=1.7.0",
-        "lark",
+        'numpy>=1.7.0',
+        'lark',
     ],
-    python_requires=">=3.6",
+    python_requires='>=3.6',
     zip_safe=True,
     include_package_data=True,
     cmdclass={
-        "build": BuildParser,
+        'build': BuildParser,
     }
 )
