@@ -1,0 +1,57 @@
+from setuptools import setup, find_packages
+from setuptools.command.build import build
+import subprocess
+from pathlib import Path
+from os.path import join
+
+
+def check_artifact_out_of_date(artifact, origin):
+    art_path = Path(artifact)
+    org_path = Path(origin)
+
+    if not art_path.is_file():
+        return True
+
+    return art_path.stat().st_mtime < org_path.stat().st_mtime
+
+
+class BuildParser(build):
+    def run(self):
+
+        parser_path = join('named_einsum', 'lark_parser.py')
+        grammar_path = join('named_einsum', 'grammar.g')
+
+        if check_artifact_out_of_date(parser_path, grammar_path):
+            with open(parser_path, 'w') as f:
+                print('Building parser...')
+                subprocess.run(['python3', '-m', 'lark.tools.standalone', grammar_path], stdout=f)
+        super().run()
+
+
+setup(
+    name="named_einsum",
+    version="0.1.0",  # You can manage version manually here
+    author="Nicolas Nytko",
+    author_email="nnytko2@illinois.edu",
+    description="Readable einsum",
+    long_description=open("README.md").read(),
+    long_description_content_type="text/markdown",
+    url="https://github.com/nicknytko/named_einsum",
+    license="MIT",
+    keywords=["einsum", "tensor contraction"],
+    classifiers=[
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3",
+    ],
+    packages=find_packages(),
+    install_requires=[
+        "numpy>=1.7.0",
+        "lark",
+    ],
+    python_requires=">=3.6",
+    zip_safe=True,
+    include_package_data=True,
+    cmdclass={
+        "build": BuildParser,
+    }
+)
