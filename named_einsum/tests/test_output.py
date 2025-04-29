@@ -1,19 +1,21 @@
+"""Test valid compiled einsum strings."""
 import named_einsum
-import pytest
 
 
 def test_named_input():
-    assert(named_einsum.translate('input_1[a], input_2[b] -> output[a,b]') == 'A,B->AB')
+    """Basic test of named variables."""
+    assert named_einsum.translate('input_1[a], input_2[b] -> output[a,b]') == 'A,B->AB'
 
 
 def test_scalar_out():
-    assert(named_einsum.translate('[a] ->') == 'A->')
-    assert(named_einsum.translate('[a] -> output') == 'A->')
+    """Test of scalar output."""
+    assert named_einsum.translate('[a] ->') == 'A->'
+    assert named_einsum.translate('[a] -> output') == 'A->'
 
 
 def test_complex():
-    # Evaluation of tensor-product mass-matrix
-    assert(named_einsum.translate('''
+    """Test of a Tensor-product mass matrix evaluation."""
+    assert (named_einsum.translate('''
     phi_ix[basis_ix, quad_x],
     phi_iy[basis_iy, quad_y],
     phi_jx[basis_jx, quad_x],
@@ -27,4 +29,5 @@ def test_complex():
 
 
 def test_ellipsis():
-    assert(named_einsum.translate('[...,a,b], [a,b] -> [...]') == '...AB,AB->...')
+    """Test of axis broadcasting using ellipses..."""
+    assert named_einsum.translate('[...,a,b], [a,b] -> [...]') == '...AB,AB->...'

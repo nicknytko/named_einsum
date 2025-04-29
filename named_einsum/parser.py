@@ -1,21 +1,25 @@
-from named_einsum.lark_parser import Lark_StandAlone
+"""Parsing of named einsum expressions."""
 from types import SimpleNamespace
+from named_einsum.lark_parser import Lark_StandAlone
 import named_einsum.exceptions
-from named_einsum.characters import valid_characters
+from named_einsum.characters import VALID_CHARACTERS
 
 
 class Variable:
-    def __init__(self, name=None, axes=[]):
+    """A named variable and its axes."""
+
+    def __init__(self, name, axes):
         self.name = name
         self.axes = axes
 
     @property
     def axis_names(self):
+        """Returns all named axes."""
         return [axis for axis in self.axes if isinstance(axis, str)]
 
 
 def _parse_variable(tree):
-    assert(tree.data == 'variable')
+    assert tree.data == 'variable'
 
     # Optionally capture the variable name, if provided
     if len(tree.children) == 2:
@@ -27,6 +31,8 @@ def _parse_variable(tree):
     elif tree.children[0].data == 'axes':
         name = None
         tree_axes = tree.children[0]
+    else:
+        raise RuntimeError('Invalid parse tree for variable.')
 
     # Grab all axis names
     axes = []
@@ -36,23 +42,24 @@ def _parse_variable(tree):
         else:
             axes.append(...)
 
-    return Variable(name=name, axes=axes)
+    return Variable(name, axes)
 
 
 def _idx_to_letter(axis, idx):
-    if idx >= len(valid_characters):
+    if idx >= len(VALID_CHARACTERS):
         raise named_einsum.exceptions.TooManyAxesError(axis, idx)
-    return valid_characters[idx]
+    return VALID_CHARACTERS[idx]
 
 
 def parse(inp):
+    """Parse an input named einsum expression into a series of input and output variables."""
     parser = Lark_StandAlone()
     tree = parser.parse(inp)
 
-    assert(tree.data == 'einsum')
-    assert(len(tree.children) == 2)
-    assert(tree.children[0].data == 'input_variables')
-    assert(tree.children[1].data == 'output_variable')
+    assert tree.data == 'einsum'
+    assert len(tree.children) == 2
+    assert tree.children[0].data == 'input_variables'
+    assert tree.children[1].data == 'output_variable'
 
     tree_input_variables = tree.children[0]
     tree_output_variable = tree.children[1]

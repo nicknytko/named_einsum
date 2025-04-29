@@ -1,6 +1,6 @@
+"""Main import for named_einsum."""
 import functools
-from named_einsum.parser import parse
-from types import SimpleNamespace
+import named_einsum.parser
 
 
 def _generate_variable_subscripts(variable, mapping):
@@ -15,9 +15,13 @@ def _generate_variable_subscripts(variable, mapping):
     return out_str
 
 
-def compile(parsed):
-    '''Compile a parsed string into an executable einsum statement'''
+def parse(s):
+    """Parse a readable einsum string into a list of variables."""
+    return named_einsum.parser.parse(s)
 
+
+def compile(parsed):
+    """Compile a parsed string into an executable einsum statement."""
     input_var_strs = []
     for input_variable in parsed.input_variables:
         input_var_strs.append(
@@ -30,37 +34,38 @@ def compile(parsed):
     return ','.join(input_var_strs) + '->' + output_var_str
 
 
-def shape_check(parsed, variables):
+def shape_check(parsed, variables):  # noqa
+    """Check the shape of input variables against a parsed expression."""
     # todo...
-    pass
 
 
-def translate(subscripts):
-    '''Translate a readable einsum string into something that can be executed by (i.e.) numpy'''
-
-    return compile(parse(subscripts))
+@functools.cache
+def translate(subscripts, return_parsed=False):
+    """Translate a readable einsum string into something that can be executed by (i.e.) numpy."""
+    parsed = parse(subscripts)
+    if return_parsed:
+        return compile(parsed), parsed
+    return compile(parsed)
 
 
 def einsum(fn, subscripts, *args, **kwargs):
-    '''
-    Wrapper for existing einsum functions
+    """
+    Wrapper routine for existing einsum functions.
 
-    parameters
+    Parameters
     ----------
     fn : callable[[subscripts, arguments...], [output]]
       Existing einsum function to wrap
     subscripts : string
       Readable einsum subscripts string
 
-    returns
+    Returns
     -------
     array
       Output of einsum
-    '''
-
-    parsed_subscripts = parse(subscripts)
+    """
+    compiled_subscripts, parsed_subscripts = translate(subscripts, True)
     shape_check(parsed_subscripts, args)
-    compiled_subscripts = compile(parsed_subscripts)
     return fn(compiled_subscripts, *args, **kwargs)
 
 
