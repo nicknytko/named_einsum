@@ -39,6 +39,21 @@ The remainder of the einsum remains the same, and has the syntax
 input_variable_1, input_variable_2, ... -> output_variable
 ```
 
+C-style comments using `//` are supported, i.e.,
+
+```Python
+'''
+// This is a comment
+var_1[axis_1, axis_2],
+
+// This is another comment
+var_2[axis_2, axis_3] ->
+
+// This is a third comment
+var_out[axis_1, axis_3]
+'''
+```
+
 ### Examples
 
 Structured inner product
