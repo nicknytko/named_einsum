@@ -21,4 +21,7 @@ einsum : input_variables "->" output_variable
 %import common.SIGNED_NUMBER
 %import common.WS
 
+COMMENT: "//" /[^\n]/*
+%ignore COMMENT
+
 %ignore WS

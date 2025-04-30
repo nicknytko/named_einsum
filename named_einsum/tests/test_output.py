@@ -31,3 +31,13 @@ def test_complex():
 def test_ellipsis():
     """Test of axis broadcasting using ellipses..."""
     assert named_einsum.translate('[...,a,b], [a,b] -> [...]') == '...AB,AB->...'
+
+
+def test_comment():
+    """Test of comments in the einsum string."""
+    assert named_einsum.translate(
+        '''
+        // this is a comment and shouldn't affect output!
+        [a] ->
+        '''
+    ) == 'A->'
