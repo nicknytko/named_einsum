@@ -3,8 +3,13 @@ ellipsis : "..."
 
 ?axis_name : name | ellipsis
 
-axes : axis_name ("," axis_name)+
+product_axis: axis_name ("*" axis_name)+
+
+?axis_name_or_product: product_axis
     | axis_name
+
+axes : axis_name_or_product ("," axis_name_or_product)+
+    | axis_name_or_product
 
 variable : name "[" axes "]"
     | name
@@ -22,6 +27,6 @@ einsum : input_variables "->" output_variable
 %import common.WS
 
 COMMENT: "//" /[^\n]/*
-%ignore COMMENT
 
+%ignore COMMENT
 %ignore WS

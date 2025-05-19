@@ -30,8 +30,9 @@ A variable can be described with the syntax
 {variable_name}[ axis_1, axis_2, axis_3, ... ]
 ```
 
-where `variable_name` is an optional name for the input/output variable, and axis names are some mixture of letters, digits, and underscores (_).
-For scalar variables, the axes can be omitted entirely.
+where `variable_name` is an optional name for the input/output variable, and axis names are some
+mixture of letters, digits, and underscores (_).  For scalar variables, the axes can be omitted
+entirely.
 
 The remainder of the einsum remains the same, and has the syntax
 
@@ -54,6 +55,14 @@ var_out[axis_1, axis_3]
 '''
 ```
 
+Product axes are supported in the output.  The syntax `i*j`, for example, means to flatten axes `i`
+and `j` into a single axis in the output.  This is syntactic sugar for computing the intermediate
+axes `i` and `j`, then flattening them together in the output.
+
+```Python
+A[i], B[j] -> C[i * j]
+```
+
 ### Examples
 
 Structured inner product
@@ -65,4 +74,15 @@ named_einsum.einsum(np.einsum, '''
   ->
   u_times_v
 ''', u, v)
+```
+
+Khatri-Rao product
+
+```Python
+named_einsum.einsum(np.einsum, '''
+  A[i, l],
+  B[j, l]
+  ->
+  KRP[i * j, l]
+''', A, B)
 ```

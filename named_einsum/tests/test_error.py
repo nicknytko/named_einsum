@@ -2,6 +2,7 @@
 import named_einsum
 import named_einsum.exceptions
 import pytest
+import numpy as np
 
 
 def test_axis_not_found():
@@ -33,3 +34,16 @@ def test_invalid_parse():
         named_einsum.translate('var[1,2,3] ->')
     with pytest.raises(Exception):
         named_einsum.translate('var[1,2,3 ->')
+
+
+def test_ambiguous_ellipse_shape():
+    """Test for ambiguous ellipses."""
+    with pytest.raises(named_einsum.exceptions.AmbiguousEllipsesError):
+        parsed = named_einsum.parse('var[..., a, ...] ->')
+        named_einsum.shape_check(parsed, np.empty((2, 2, 2)))
+
+
+def test_inconsistent_shape():
+    """Test for inconsistent axis sizes."""
+    with pytest.raises(named_einsum.exceptions.InconsistentAxisSizeError):
+        named_einsum.einsum(np.einsum, '[a], [a] ->', np.empty(5), np.empty(10))
