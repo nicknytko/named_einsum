@@ -85,56 +85,55 @@ def shape_check(parsed, variables):  # noqa
 
 
 def compute_output_shape(parsed, var):
-    """Compute the shape of the output variable if we have product axes"""
+    """Compute the shape of the output variable if we have product axes."""
     if parsed.output_variable is None:
         # Scalar shape
         return (())
-    else:
-        var_spec = parsed.output_variable
-        ndim = var.ndim
-        flat_axes = var_spec.flattened_axes
-        naxis = len(flat_axes)
 
-        # Check if we have an ellipse axis
-        ellipsis_axis_num = -1
-        for i, axis in enumerate(flat_axes):
+    var_spec = parsed.output_variable
+    flat_axes = var_spec.flattened_axes
+    naxis = len(flat_axes)
+
+    # Check if we have an ellipse axis
+    ellipsis_axis_num = -1
+    for i, axis in enumerate(flat_axes):
+        if isinstance(axis, named_einsum.parser.EllipsisAxis):
+            if ellipsis_axis_num != -1:
+                raise named_einsum.exceptions.AmbiguousEllipsesError(var_spec.name)
+            ellipsis_axis_num = i
+
+    # Fill out the ellipse axes to get a materialized list of axis that are
+    # either a ProductAxis or NamedAxis
+    if ellipsis_axis_num != -1:
+        ellipse_axes = []
+        for i in range(ellipsis_axis_num, naxis - ellipsis_axis_num):
+            ellipse_axes.append(named_einsum.parser.NamedAxis(
+                f'!ellipsis_{i - ellipsis_axis_num}', var.shape[i]
+            ))
+        material_axes = []
+        for axis in var_spec.axes:
             if isinstance(axis, named_einsum.parser.EllipsisAxis):
-                if ellipsis_axis_num != -1:
-                    raise named_einsum.exceptions.AmbiguousEllipsesError(var_spec.name)
-                ellipsis_axis_num = i
-
-        # Fill out the ellipse axes to get a materialized list of axis that are
-        # either a ProductAxis or NamedAxis
-        if ellipsis_axis_num != -1:
-            ellipse_axes = []
-            for i in range(ellipsis_axis_num, naxis - ellipsis_axis_num):
-                ellipse_axes.append(named_einsum.parser.NamedAxis(
-                    f'!ellipsis_{i - ellipsis_axis_num}', var.shape[i]
-                ))
-            material_axes = []
-            for axis in var_spec.axes:
-                if isinstance(axis, named_einsum.parser.EllipsisAxis):
-                    full_axes.extend(ellipse_axes)
-                else:
-                    full_axes.append(axis)
-        else:
-            material_axes = var_spec.axes
-
-        # Now, collapse ProductAxes
-        output_shape = []
-        shape_ptr = 0
-        for axis in material_axes:
-            if isinstance(axis, named_einsum.parser.ProductAxis):
-                size = functools.reduce(
-                    lambda x, y: x*y, var.shape[shape_ptr: shape_ptr + axis.num_axes], 1
-                )
-                output_shape.append(size)
-                shape_ptr += axis.num_axes
+                material_axes.extend(ellipse_axes)
             else:
-                output_shape.append(var.shape[shape_ptr])
-                shape_ptr += 1
+                material_axes.append(axis)
+    else:
+        material_axes = var_spec.axes
 
-        return tuple(output_shape)
+    # Now, collapse ProductAxes
+    output_shape = []
+    shape_ptr = 0
+    for axis in material_axes:
+        if isinstance(axis, named_einsum.parser.ProductAxis):
+            size = functools.reduce(
+                lambda x, y: x * y, var.shape[shape_ptr: shape_ptr + axis.num_axes], 1
+            )
+            output_shape.append(size)
+            shape_ptr += axis.num_axes
+        else:
+            output_shape.append(var.shape[shape_ptr])
+            shape_ptr += 1
+
+    return tuple(output_shape)
 
 
 @functools.cache

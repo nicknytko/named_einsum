@@ -38,7 +38,7 @@ def test_torch():
 
 def test_matvec():
     """matrix-vector product."""
-    A = np.eye(10, k=1) # Shift matrix
+    A = np.eye(10, k=1)  # Shift matrix
     b = np.zeros(10)
     b[1:] = 1.
     out_expected = np.zeros(10)
@@ -54,12 +54,11 @@ def test_product_axis():
     C = np.ones(7)
     out = named_einsum.numpy.einsum('A[i], B[j], C[k] -> C[i*j*k]', A, B, C)
     assert out.ndim == 1 and out.shape[0] == (10 * 5 * 7)
-    assert(np.all(out == 1.))
+    assert np.all(out == 1.)
 
 
 def test_khatri_rao_product():
     """Khatri-rao product, i.e., the column-wise Kronecker product."""
-
     # This example is taken from https://en.wikipedia.org/wiki/Khatri%E2%80%93Rao_product
 
     C = np.array([

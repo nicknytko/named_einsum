@@ -42,7 +42,9 @@ def test_comment():
         '''
     ) == 'A->'
 
+
 def test_product_output():
+    """Test of the output einsum of a product axis."""
     assert named_einsum.translate(
         '''
         [i, j] -> [i * j]

@@ -1,50 +1,62 @@
 """Parsing of named einsum expressions."""
 from types import SimpleNamespace
+import functools
+from abc import ABC, abstractmethod
+
 from named_einsum.lark_parser import Lark_StandAlone
 import named_einsum.exceptions
 from named_einsum.characters import VALID_CHARACTERS
-import functools
-from abc import ABC, abstractmethod
-import traceback
-import sys
 
 
 class BaseAxis(ABC):
+    """Base axis type representing some abstract axis einsum definition."""
+
     @property
     @abstractmethod
     def axis_names(self):
+        """Returns a list of string axis represented by this object."""
         return []
 
     @property
     def flattened_axes(self):
+        """Returns a list of NamedAxis/EllipsisAxis represented by this object."""
         return [self]
 
     @abstractmethod
     def einsum_repr(self, mapping):
+        """Returns the output representation of this object in the einsum string."""
         return ''
 
 
 class NamedAxis(BaseAxis):
+    """A material axis that has an (optional) name."""
+
     def __init__(self, name):
         self.name = name
 
     @property
     def axis_names(self):
+        """Returns the name of this axis."""
         return [self.name]
 
     def __repr__(self):
+        """String representation of this named axis."""
         return f'(NamedAxis: {self.name})'
 
     def einsum_repr(self, mapping):
+        """Returns the mapped letter of this axis."""
         return mapping[self.name]
 
 
 class ProductAxis(BaseAxis):
+    """An axis that is a product of several named axes."""
+
     def __init__(self, names):
         self.axes = [NamedAxis(name) for name in names]
 
     @property
     def axis_names(self):
+        """Returns all axis names represented by this product axis."""
         return functools.reduce(
             lambda acc, axis: acc + axis.axis_names,
             self.axes, []
@@ -52,28 +64,37 @@ class ProductAxis(BaseAxis):
 
     @property
     def flattened_axes(self):
+        """Returns all NamedAxis objects represented by this product."""
         return self.axes
 
     @property
     def num_axes(self):
+        """Returns the number of axes represented by this product."""
         return len(self.axes)
 
     def __repr__(self):
+        """String representation of this product axis."""
         return f'(ProductAxis: {self.axes})'
 
     def einsum_repr(self, mapping):
+        """Returns the individual mapped letters of the product axes."""
         return ''.join([axis.einsum_repr(mapping) for axis in self.axes])
 
 
 class EllipsisAxis(BaseAxis):
+    """A placeholder axis that can be expanded to represent some number of input/output axes."""
+
     @property
     def axis_names(self):
+        """Returns all axis names (none) represented by this ellipse."""
         return []
 
     def __repr__(self):
+        """Human-readable name for an ellipse axis."""
         return '(EllipsisAxis)'
 
     def einsum_repr(self, mapping):
+        """Ellipse output in the einsum."""
         return '...'
 
 
@@ -101,6 +122,7 @@ class Variable:
         )
 
     def __repr__(self):
+        """String representation of this variable with its axes."""
         return f'({self.name}: {self.axes})'
 
 
