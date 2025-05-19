@@ -3,6 +3,78 @@ from types import SimpleNamespace
 from named_einsum.lark_parser import Lark_StandAlone
 import named_einsum.exceptions
 from named_einsum.characters import VALID_CHARACTERS
+import functools
+from abc import ABC, abstractmethod
+import traceback
+import sys
+
+
+class BaseAxis(ABC):
+    @property
+    @abstractmethod
+    def axis_names(self):
+        return []
+
+    @property
+    def flattened_axes(self):
+        return [self]
+
+    @abstractmethod
+    def einsum_repr(self, mapping):
+        return ''
+
+
+class NamedAxis(BaseAxis):
+    def __init__(self, name):
+        self.name = name
+
+    @property
+    def axis_names(self):
+        return [self.name]
+
+    def __repr__(self):
+        return f'(NamedAxis: {self.name})'
+
+    def einsum_repr(self, mapping):
+        return mapping[self.name]
+
+
+class ProductAxis(BaseAxis):
+    def __init__(self, names):
+        self.axes = [NamedAxis(name) for name in names]
+
+    @property
+    def axis_names(self):
+        return functools.reduce(
+            lambda acc, axis: acc + axis.axis_names,
+            self.axes, []
+        )
+
+    @property
+    def flattened_axes(self):
+        return self.axes
+
+    @property
+    def num_axes(self):
+        return len(self.axes)
+
+    def __repr__(self):
+        return f'(ProductAxis: {self.axes})'
+
+    def einsum_repr(self, mapping):
+        return ''.join([axis.einsum_repr(mapping) for axis in self.axes])
+
+
+class EllipsisAxis(BaseAxis):
+    @property
+    def axis_names(self):
+        return []
+
+    def __repr__(self):
+        return '(EllipsisAxis)'
+
+    def einsum_repr(self, mapping):
+        return '...'
 
 
 class Variable:
@@ -15,7 +87,21 @@ class Variable:
     @property
     def axis_names(self):
         """Returns all named axes."""
-        return [axis for axis in self.axes if isinstance(axis, str)]
+        return functools.reduce(
+            lambda acc, axis: acc + axis.axis_names,
+            self.axes, []
+        )
+
+    @property
+    def flattened_axes(self):
+        """Returns a list of all named/ellipsis axes."""
+        return functools.reduce(
+            lambda acc, axis: acc + axis.flattened_axes,
+            self.axes, []
+        )
+
+    def __repr__(self):
+        return f'({self.name}: {self.axes})'
 
 
 def _parse_variable(tree):
@@ -38,9 +124,14 @@ def _parse_variable(tree):
     axes = []
     for tree_axis in tree_axes.children:
         if tree_axis.data == 'name':
-            axes.append(tree_axis.children[0].value.lower())
-        else:
-            axes.append(...)
+            # Regular named axis
+            axes.append(NamedAxis(tree_axis.children[0].value.lower()))
+        elif tree_axis.data == 'product_axis':
+            axes.append(ProductAxis([
+                node.children[0].value.lower() for node in tree_axis.children
+            ]))
+        elif tree_axis.data == 'ellipsis':
+            axes.append(EllipsisAxis())
 
     return Variable(name, axes)
 

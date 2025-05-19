@@ -41,3 +41,10 @@ def test_comment():
         [a] ->
         '''
     ) == 'A->'
+
+def test_product_output():
+    assert named_einsum.translate(
+        '''
+        [i, j] -> [i * j]
+        '''
+    ) == 'AB->AB'
