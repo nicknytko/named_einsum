@@ -47,3 +47,9 @@ def test_inconsistent_shape():
     """Test for inconsistent axis sizes."""
     with pytest.raises(named_einsum.exceptions.InconsistentAxisSizeError):
         named_einsum.einsum(np.einsum, '[a], [a] ->', np.empty(5), np.empty(10))
+
+
+def test_inconsistent_axis_definition():
+    """Test for inconsistent axis definition."""
+    with pytest.raises(named_einsum.exceptions.InconsistentShapeDefinitionError):
+        named_einsum.einsum(np.einsum, '[a, b] ->', np.empty(5))

@@ -32,9 +32,10 @@ def compile(parsed):
     return ','.join(input_var_strs) + '->' + output_var_str
 
 
-def shape_check(parsed, variables):  # noqa
+def shape_check(parsed, variables):
     """Check the shape of input variables against a parsed expression."""
     variable_shapes = {}
+    material_variable_axes = []
 
     for (var_spec, var) in zip(parsed.input_variables, variables):
         ndim = var.ndim
@@ -54,34 +55,73 @@ def shape_check(parsed, variables):  # noqa
                 var_spec.name, len(var_spec.axes), ndim
             )
 
-        # Check the shape
+        # Fill out the ellipse axes to get a materialized list of axis that are
+        # either a ProductAxis or NamedAxis
+        mat_axis = []
+
+        # Helper to check shape and materialize axes
         def check_axis(axis, size):
-            if not isinstance(axis, named_einsum.parser.NamedAxis):
-                return
-            axis_name = axis.name
+            print(axis)
+            mat_axis.append(axis)
+            if isinstance(axis, named_einsum.parser.ProductAxis):
+                # If we have a product axis, check that the product of axis shapes is consistent
+                product_size = 1
+                for subaxis in axis.axes:
+                    axis_name = subaxis.name
+                    if axis_name not in variable_shapes:
+                        return
+                    product_size *= variable_shapes[axis_name]
+                if product_size != size:
+                    raise named_einsum.exceptions.InconsistentAxisSizeError(
+                        f'Product ({axis.einsum_repr})', [product_size, size]
+                    )
+            else:
+                axis_name = axis.name
 
-            # If this is the first time we encounter this axis, set it and return
-            if axis_name not in variable_shapes:
-                variable_shapes[axis_name] = size
-                return
+                # If this is the first time we encounter this axis, set it and return
+                if axis_name not in variable_shapes:
+                    variable_shapes[axis_name] = size
+                    return
 
-            # ... else check to make sure we are consistent
-            previous_size = variable_shapes[axis_name]
-            if previous_size != size:
-                raise named_einsum.exceptions.InconsistentAxisSizeError(
-                    axis_name, (previous_size, size)
-                )
+                # ... else check to make sure we are consistent
+                previous_size = variable_shapes[axis_name]
+                if previous_size != size:
+                    raise named_einsum.exceptions.InconsistentAxisSizeError(
+                        axis_name, (previous_size, size)
+                    )
 
+        # Finally, handle axis checking with ellipses
+        shape_ptr = 0
         for i, axis in enumerate(var_spec.axes):
             if ellipsis_axis_num == -1 or i < ellipsis_axis_num:
                 # Before ellipsis
-                check_axis(axis, var.shape[i])
-            elif ellipsis_axis_num != -1 and i > (naxis - ellipsis_axis_num):
+                check_axis(axis, var.shape[shape_ptr])
+                shape_ptr += 1
+            elif ellipsis_axis_num != -1 and i >= (naxis - ellipsis_axis_num):
                 # After ellipsis
-                check_axis(axis, var.shape[i])
+                check_axis(axis, var.shape[shape_ptr])
+                shape_ptr += 1
             else:
                 # Current axis belongs in the ellipsis
-                check_axis(f'!ellipsis_{i - ellipsis_axis_num}', var.shape[i])
+                num_ellipse_axes = (ndim - naxis) + 1
+                for j in range(num_ellipse_axes):
+                    check_axis(
+                        named_einsum.parser.NamedAxis(f'!ellipsis_{j}'),
+                        var.shape[shape_ptr]
+                    )
+                    shape_ptr += 1
+
+        material_variable_axes.append(mat_axis)
+
+    # Reshape variables to reduce product axes
+    reshaped_variables = []
+    for (var_spec, var) in zip(material_variable_axes, variables):
+        output_shape = []
+        for axis in var_spec:
+            output_shape.extend([variable_shapes[subaxis_name] for subaxis_name in axis.axis_names])
+        reshaped_variables.append(var.reshape(tuple(output_shape)))
+
+    return reshaped_variables
 
 
 def compute_output_shape(parsed, var):
@@ -106,9 +146,9 @@ def compute_output_shape(parsed, var):
     # either a ProductAxis or NamedAxis
     if ellipsis_axis_num != -1:
         ellipse_axes = []
-        for i in range(ellipsis_axis_num, naxis - ellipsis_axis_num):
+        for i in range(var.ndim - naxis + 1):
             ellipse_axes.append(named_einsum.parser.NamedAxis(
-                f'!ellipsis_{i - ellipsis_axis_num}', var.shape[i]
+                f'!ellipsis_{i}'
             ))
         material_axes = []
         for axis in var_spec.axes:
@@ -162,9 +202,9 @@ def einsum(fn, subscripts, *args, **kwargs):
       Output of einsum
     """
     compiled_subscripts, parsed_subscripts = translate(subscripts, True)
-    shape_check(parsed_subscripts, args)
+    reshaped_input = shape_check(parsed_subscripts, args)
 
-    output = fn(compiled_subscripts, *args, **kwargs)
+    output = fn(compiled_subscripts, *reshaped_input, **kwargs)
     output_shape = compute_output_shape(parsed_subscripts, output)
 
     return output.reshape(output_shape)

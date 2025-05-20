@@ -36,6 +36,12 @@ def test_torch():
     assert _close(named_einsum.torch.einsum('A[a, b, c] ->', A), 10**3)
 
 
+def test_ellipse():
+    """Test for ellipse axes."""
+    A = np.ones((10, 10, 10, 10))
+    assert _close(named_einsum.numpy.einsum('A[a, ..., b] -> [...]', A).sum(), 10**4)
+
+
 def test_matvec():
     """matrix-vector product."""
     A = np.eye(10, k=1)  # Shift matrix
@@ -91,3 +97,21 @@ def test_khatri_rao_product():
     ]).astype(np.float64)
 
     assert np.allclose(krp, out_expected)
+
+
+def test_tensor_times_matrix():
+    """Unfolded tensor-times-matrix product."""
+    I = 11  # noqa: E741
+    J = 17
+    K = 7
+    R = 5
+
+    T = np.ones((I, J, K))
+    W = np.ones((I * J, R))
+
+    out = named_einsum.numpy.einsum(
+        'T[i, j, k], W[i * j, r] -> Y[k, r]',
+        T, W
+    )
+
+    assert out.shape == (K, R)
