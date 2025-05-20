@@ -3,9 +3,6 @@ import numpy as np
 import jax.numpy as jnp
 import torch
 import named_einsum
-import named_einsum.numpy
-import named_einsum.jax
-import named_einsum.torch
 
 
 def _close(val, true, tol=1e-5):
@@ -15,31 +12,31 @@ def _close(val, true, tol=1e-5):
 def test_wrapper():
     """Test wrapping numpy."""
     A = np.ones((10, 10, 10))
-    assert _close(named_einsum.einsum(np.einsum, 'A[a,b,c] ->', A), 10**3)
+    assert _close(named_einsum.einsum('A[a,b,c] ->', A), 10**3)
 
 
 def test_numpy():
     """Test Numpy einsum."""
     A = np.ones((10, 10, 10))
-    assert _close(named_einsum.numpy.einsum('A[a, b, c] ->', A), 10**3)
+    assert _close(named_einsum.einsum('A[a, b, c] ->', A), 10**3)
 
 
 def test_jax():
     """Test JAX einsum."""
     A = jnp.ones((10, 10, 10))
-    assert _close(named_einsum.jax.einsum('A[a, b, c] ->', A), 10**3)
+    assert _close(named_einsum.einsum('A[a, b, c] ->', A), 10**3)
 
 
 def test_torch():
     """Test Torch einsum."""
     A = torch.ones((10, 10, 10))
-    assert _close(named_einsum.torch.einsum('A[a, b, c] ->', A), 10**3)
+    assert _close(named_einsum.einsum('A[a, b, c] ->', A), 10**3)
 
 
 def test_ellipse():
     """Test for ellipse axes."""
     A = np.ones((10, 10, 10, 10))
-    assert _close(named_einsum.numpy.einsum('A[a, ..., b] -> [...]', A).sum(), 10**4)
+    assert _close(named_einsum.einsum('A[a, ..., b] -> [...]', A).sum(), 10**4)
 
 
 def test_matvec():
@@ -50,7 +47,7 @@ def test_matvec():
     out_expected = np.zeros(10)
     out_expected[:-1] = 1.
 
-    assert np.max(abs(named_einsum.numpy.einsum('A[i,j], b[j] -> [i]', A, b) - out_expected)) < 1e-5
+    assert np.max(abs(named_einsum.einsum('A[i,j], b[j] -> [i]', A, b) - out_expected)) < 1e-5
 
 
 def test_product_axis():
@@ -58,7 +55,7 @@ def test_product_axis():
     A = np.ones(10)
     B = np.ones(5)
     C = np.ones(7)
-    out = named_einsum.numpy.einsum('A[i], B[j], C[k] -> C[i*j*k]', A, B, C)
+    out = named_einsum.einsum('A[i], B[j], C[k] -> C[i*j*k]', A, B, C)
     assert out.ndim == 1 and out.shape[0] == (10 * 5 * 7)
     assert np.all(out == 1.)
 
@@ -79,7 +76,7 @@ def test_khatri_rao_product():
         [3, 6, 9]
     ]).astype(np.float64)
 
-    krp = named_einsum.numpy.einsum(
+    krp = named_einsum.einsum(
         'C[i, l], D[j, l] -> KRP[i*j, l]',
         C, D
     )
@@ -109,7 +106,7 @@ def test_tensor_times_matrix():
     T = np.ones((I, J, K))
     W = np.ones((I * J, R))
 
-    out = named_einsum.numpy.einsum(
+    out = named_einsum.einsum(
         'T[i, j, k], W[i * j, r] -> Y[k, r]',
         T, W
     )

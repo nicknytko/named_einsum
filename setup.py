@@ -61,6 +61,7 @@ setup(
     install_requires=[
         'numpy>=1.7.0',
         'lark',
+        'autoray'
     ],
     python_requires='>=3.6',
     zip_safe=True,

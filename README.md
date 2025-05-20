@@ -9,7 +9,7 @@ np.einsum('ab,cd,eb,fd,b,d,gbd -> gacef', ...)
 to the much more informative
 
 ```Python
-named_einsum.einsum(np.einsum, '''
+named_einsum.einsum('''
   phi_ix[basis_ix, quadrature_x],
   phi_iy[basis_iy, quadrature_y],
   phi_jx[basis_jx, quadrature_x],
@@ -21,6 +21,9 @@ named_einsum.einsum(np.einsum, '''
   mass[element, basis_ix, basis_iy, basis_jx, basis_jy]
 ''', ...)
 ```
+
+Einsum dispatching is automatically performed using [autoray](https://github.com/jcmgray/autoray) on
+the underlying input types.
 
 ### Syntax
 
@@ -68,7 +71,7 @@ A[i], B[j] -> C[i * j]
 Structured inner product
 
 ```Python
-named_einsum.einsum(np.einsum, '''
+named_einsum.einsum('''
   u[element, basis],
   v[element, basis]
   ->
@@ -79,7 +82,7 @@ named_einsum.einsum(np.einsum, '''
 Khatri-Rao product
 
 ```Python
-named_einsum.einsum(np.einsum, '''
+named_einsum.einsum('''
   A[i, l],
   B[j, l]
   ->

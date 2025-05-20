@@ -2,6 +2,7 @@
 import functools
 import named_einsum.parser
 import named_einsum.exceptions
+import autoray
 
 
 def _generate_variable_subscripts(variable, mapping):
@@ -185,7 +186,7 @@ def translate(subscripts, return_parsed=False):
     return compile(parsed)
 
 
-def einsum(fn, subscripts, *args, **kwargs):
+def einsum(subscripts, *args, **kwargs):
     """
     Wrapper routine for existing einsum functions.
 
@@ -204,13 +205,7 @@ def einsum(fn, subscripts, *args, **kwargs):
     compiled_subscripts, parsed_subscripts = translate(subscripts, True)
     reshaped_input = shape_check(parsed_subscripts, args)
 
-    output = fn(compiled_subscripts, *reshaped_input, **kwargs)
+    output = autoray.do('einsum', compiled_subscripts, *reshaped_input, **kwargs)
     output_shape = compute_output_shape(parsed_subscripts, output)
 
     return output.reshape(output_shape)
-
-
-def _einsum_partial(fn):
-    def f(*args, **kwargs):
-        return einsum(fn, *args, **kwargs)
-    return f
