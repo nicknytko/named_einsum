@@ -62,7 +62,6 @@ def shape_check(parsed, variables):
 
         # Helper to check shape and materialize axes
         def check_axis(axis, size):
-            print(axis)
             mat_axis.append(axis)
             if isinstance(axis, named_einsum.parser.ProductAxis):
                 # If we have a product axis, check that the product of axis shapes is consistent
