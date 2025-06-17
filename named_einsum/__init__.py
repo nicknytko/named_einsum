@@ -208,3 +208,24 @@ def einsum(subscripts, *args, **kwargs):
     output_shape = compute_output_shape(parsed_subscripts, output)
 
     return output.reshape(output_shape)
+
+
+def feinsum(subscripts, *args, **kwargs):
+    """
+    Wrapper routine for existing einsum functions.
+    "Fast" version, in that no shape checking is done.
+
+    Parameters
+    ----------
+    fn : callable[[subscripts, arguments...], [output]]
+      Existing einsum function to wrap
+    subscripts : string
+      Readable einsum subscripts string
+
+    Returns
+    -------
+    array
+      Output of einsum
+    """
+    compiled_subscripts, parsed_subscripts = translate(subscripts, True)
+    return autoray.do('einsum', compiled_subscripts, *args, **kwargs)
